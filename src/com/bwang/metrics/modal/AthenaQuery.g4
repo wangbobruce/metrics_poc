@@ -11,18 +11,19 @@ package com.bwang.metrics.gen;
 expr :
       MINUS expr   #unaryExpr
     | '(' parent=expr ')'  #parentEpr
-    | left=expr K_AND right=expr    #binaryExp
-    | left=expr K_OR right=expr     #binaryExp
-    | left=expr K_UNLESS right=expr #binaryExp
-    | left=expr op=('-'|'+'|'*'|'/') right=expr  #binaryExp
-    | aggregator=(K_SUM|K_AVG|K_COUNT|K_MIN|K_MAX|K_STDDEV|K_STDVAR) aggregatorParam? vectorSelector  #aggregateExp
-    | aggregator=(K_SUM|K_AVG|K_COUNT|K_MIN|K_MAX|K_STDDEV|K_STDVAR) vectorSelector aggregatorParam?  #aggregateExp
-    | ( K_TOPK|K_BOTTOMK|K_COUNT_VALUES) '(' INT ','  vectorSelector ')'   #aggregateExp
+    | left=expr op=K_AND right=expr    #binaryExp
+    | left=expr op=K_OR right=expr     #binaryExp
+    | left=expr op=K_UNLESS right=expr #binaryExp
+    | left=expr op=('*'|'/') right=expr  #binaryExp
+    | left=expr op=('-'|'+') right=expr  #binaryExp
+    | aggregator=(K_SUM|K_AVG|K_COUNT|K_MIN|K_MAX|K_STDDEV|K_STDVAR) aggregatorParam? expr  #aggregateExp
+    | aggregator=(K_SUM|K_AVG|K_COUNT|K_MIN|K_MAX|K_STDDEV|K_STDVAR) expr aggregatorParam?  #aggregateExp
+    | aggregator=( K_TOPK|K_BOTTOMK|K_COUNT_VALUES) '(' INT ','  expr ')'   #aggregateExp
     | call    #functionExpr
     | vectorSelector  #vectorSelectorExpr
     | matrixSelector  #matrixSelectorExpr
     | numberLiteral   #numberExpr
-    | stringLiteral   #stringExpr
+    | quoted_string   #stringExpr
     ;
 
 call : 
@@ -57,6 +58,7 @@ vectorSelector :
 
 matrixSelector : 
      '('  IDENTIFIER labelMatcherList?')' rangeExpr offsetExpr?
+     |  IDENTIFIER labelMatcherList? rangeExpr offsetExpr?
      ;
 
 labelMatcherList :
@@ -110,11 +112,11 @@ QUOTED1_STRING : '\'' (~'\'')* '\'';
 fragment Exponent : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 fragment HexDigit : ('0'..'9'|'a'..'f'|'A'..'F') ;       
 
-               
+/*               
 stringLiteral:
     '\'' ( ESC | ~('\\'|'\'') )* '\''
     ;
-
+*/
  
 
 ESC :

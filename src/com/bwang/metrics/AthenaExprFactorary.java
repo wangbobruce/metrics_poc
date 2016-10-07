@@ -1,15 +1,29 @@
 package com.bwang.metrics;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
+import com.bwang.metrics.expr.AggregationExpr;
 import com.bwang.metrics.expr.BinaryExpr;
 import com.bwang.metrics.expr.Expr;
+import com.bwang.metrics.expr.FunctionExpr;
+import com.bwang.metrics.expr.LabelMatcher;
+import com.bwang.metrics.expr.MatrixSelectorExpr;
 import com.bwang.metrics.expr.NumberExpr;
+import com.bwang.metrics.expr.Offset;
+import com.bwang.metrics.expr.ParentExpr;
+import com.bwang.metrics.expr.Range;
+import com.bwang.metrics.expr.StringExpr;
 import com.bwang.metrics.expr.UnaryExpr;
+import com.bwang.metrics.expr.VectorSelectorExpr;
 import com.bwang.metrics.gen.AthenaQueryBaseVisitor;
 import com.bwang.metrics.gen.AthenaQueryLexer;
 import com.bwang.metrics.gen.AthenaQueryParser;
+import com.bwang.metrics.gen.AthenaQueryParser.ExprContext;
 
 public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 	public Expr parseExpr(String exprString) {
@@ -33,7 +47,14 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 		} else {
 			ctx.numberLiteral().DOUBLE().getText();
 		}
-		return new NumberExpr(content); 
+		Double value = Double.valueOf(content);
+		return new NumberExpr(value); 
+	}
+	
+	@Override public Expr visitQuoted_string(AthenaQueryParser.Quoted_stringContext ctx) { 
+		String content = ctx.getText();
+		
+		return new StringExpr(content);
 	}
 	
 	@Override public Expr visitBinaryExp(AthenaQueryParser.BinaryExpContext ctx) { 
@@ -44,75 +65,108 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 		return new BinaryExpr(op, left, right);
 	}
 	
-	/*
 	
-	@Override
-	public Expression visitExpr(@NotNull StupidParser.ExprContext ctx) {
-		if (ctx.value() != null) {
-			return visitValue(ctx.value());
-		} if (ctx.AND() != null) {
-			return new AndExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.MINUS() != null && ctx.left != null) {
-			return new MinusExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.PLUS() != null) {
-			return new PlusExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.OR() != null) {
-			return new OrExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.STAR() != null) {
-			return new MultiplicationExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.SLASH() != null) {
-			return new DivisionExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.LPAREN() != null) {
-			if (ctx.DOT() != null) {
-				// apply, not value
-				StupidParser.ArgslistContext args = ctx.argslist();
-				List<Expression> argsList = new ArrayList<Expression>();
-				while (args != null) {
-					argsList.add(visitExpr(args.expr()));
-					args = args.argslist();
-				}
-				return new ApplyExpression(visitExpr(ctx.left), argsList.toArray(new Expression[argsList.size()]));
-			}
-			return visitExpr(ctx.center);
-		} else if (ctx.BANG() != null) {
-			return new NotExpression(visitExpr(ctx.center));
-		} else if (ctx.MINUS() != null) {
-			return new NegateExpression(visitExpr(ctx.center));
-		} else if (ctx.EQUALS() != null && ctx.EQUALS().size() == 2) {
-			return new EqualsExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.LANGLE() != null) {
-			return new ComparisonExpression(visitExpr(ctx.left), visitExpr(ctx.right));
-		} else if (ctx.RANGLE() != null) {
-			return new ComparisonExpression(visitExpr(ctx.right), visitExpr(ctx.left));
-		} else if (ctx.var() != null) {
-			Expression base = null;
-			if (ctx.DOT() != null) {
-				base = visitExpr(ctx.left);
-			}
-			return new VarExpression(base, ctx.var().IDENTIFIER().getText());
-		} else if (ctx.call() != null) {
-			StupidParser.ArgslistContext args = ctx.call().argslist();
-			List<Expression> argsList = new ArrayList<Expression>();
-			while (args != null) {
-				argsList.add(visitExpr(args.expr()));
-				args = args.argslist();
-			}
-			Expression base = null;
-			if (ctx.DOT() != null) {
-				base = visitExpr(ctx.left);
-			}
-			return new CallExpression(base, ctx.call().IDENTIFIER().getText(),
-					argsList.toArray(new Expression[argsList.size()]));
-		} else if (ctx.ASK() != null) {
-			return new TernaryExpression(visitExpr(ctx.left), visitExpr(ctx.center), visitExpr(ctx.right));
-		} else if (ctx.assign() != null) {
-			Expression base = null;
-			if (ctx.DOT() != null) {
-				base = visitExpr(ctx.left);
-			}
-			return new AssignExpression(base, ctx.assign().IDENTIFIER().getText(), visitExpr(ctx.assign().expr()));
-		}
-		return super.visitExpr(ctx);
+	@Override public Expr visitParentEpr(AthenaQueryParser.ParentEprContext ctx) { 
+
+		return new ParentExpr(visit(ctx.parent));
+  	}
+	
+	
+	@Override public Expr visitVectorSelector(AthenaQueryParser.VectorSelectorContext ctx) { 
 		
-		*/
+		String identifierName = ctx.IDENTIFIER().getText();
+		List<LabelMatcher> lableMatcherList = new ArrayList<LabelMatcher>();
+		if (ctx.labelMatcherList() != null) {
+			for(AthenaQueryParser.LabelMatcherContext labelCtx : ctx.labelMatcherList().labelMatcher()) {
+				String operation = labelCtx.match_op.getText();
+				String labelName = labelCtx.IDENTIFIER().getText();
+				String labelValue = (labelCtx.quoted_string()!= null? labelCtx.quoted_string().getText(): labelCtx.numberLiteral().getText());
+				lableMatcherList.add(new LabelMatcher(operation, labelName, labelValue));		
+			}
+		}
+		
+		Offset offset = null;
+		if (ctx.offsetExpr()!= null) {
+			String offsetValue = ctx.offsetExpr().numberLiteral().getText();
+			String offsetUnit = ctx.offsetExpr().TIME_UNIT().getText();
+			offset = new Offset(Double.valueOf(offsetValue), offsetUnit);
+		}
+		
+		return new VectorSelectorExpr(identifierName, lableMatcherList, offset );
+	}
+	
+	@Override public Expr visitMatrixSelector(AthenaQueryParser.MatrixSelectorContext ctx) { 
+		
+		String identifierName = ctx.IDENTIFIER().getText();
+		List<LabelMatcher> lableMatcherList = new ArrayList<LabelMatcher>();
+		if (ctx.labelMatcherList() != null) {
+			for(AthenaQueryParser.LabelMatcherContext labelCtx : ctx.labelMatcherList().labelMatcher()) {
+				String operation = labelCtx.match_op.getText();
+				String labelName = labelCtx.IDENTIFIER().getText();
+				String labelValue = (labelCtx.quoted_string()!= null? labelCtx.quoted_string().getText(): labelCtx.numberLiteral().getText());
+				lableMatcherList.add(new LabelMatcher(operation, labelName, labelValue));		
+			}
+		}
+		
+		Range range = null;
+		if (ctx.rangeExpr()!= null) {
+			String begin = (ctx.rangeExpr().from_time()!= null ? ctx.rangeExpr().from_time().getText(): null);
+			String end = (ctx.rangeExpr().to_time()!= null ? ctx.rangeExpr().to_time().getText(): null);
+			
+			Double value = (ctx.rangeExpr().numberLiteral() != null ? Double.valueOf(ctx.rangeExpr().numberLiteral().getText()): null);
+			String unit = (ctx.rangeExpr().TIME_UNIT() != null ? ctx.rangeExpr().TIME_UNIT().getText(): null);
+			
+			range = new Range();
+			range.setBegin(begin);
+			range.setEnd(end);
+			range.setValue(value);
+			range.setUnit(unit);
+		}
+		
+		Offset offset = null;
+		if (ctx.offsetExpr()!= null) {
+			String offsetValue = ctx.offsetExpr().numberLiteral().getText();
+			String offsetUnit = ctx.offsetExpr().TIME_UNIT().getText();
+			offset = new Offset(Double.valueOf(offsetValue), offsetUnit);
+		}
+		
+		return new MatrixSelectorExpr(identifierName, lableMatcherList, range, offset );
+	}
+	
+	@Override public Expr visitCall(AthenaQueryParser.CallContext ctx) { 
+		String functionName = ctx.callName.getText();
+		List<Expr> argList = new ArrayList<Expr> ();
+		if (ctx.argslist() != null) {
+			for(ExprContext eC : ctx.argslist().expr()) {
+				argList.add(visit(eC));
+			}
+		}
+		
+		return new FunctionExpr(functionName, argList);
+	}
+	
+	@Override public Expr visitAggregateExp(AthenaQueryParser.AggregateExpContext ctx) { 
+		String aggregator = ctx.aggregator.getText();
+		String aggregationKey = null;
+		String keepCommon = null;
+		List<String> aggregationLabels= new ArrayList<String>();
+		if(ctx.aggregatorParam()!= null ){
+			aggregationKey = (ctx.aggregatorParam().K_BY() != null ? ctx.aggregatorParam().K_BY().getText() :
+				ctx.aggregatorParam().K_WITHOUT().getText());
+		    keepCommon = (ctx.aggregatorParam().K_KEEP_COMMON() != null ? ctx.aggregatorParam().K_KEEP_COMMON().getText() : null);
+		
+		    if(ctx.aggregatorParam().identifierList() != null) {
+		    	for(TerminalNode node  : ctx.aggregatorParam().identifierList().IDENTIFIER()) {
+		    		aggregationLabels.add(node.getText());
+		    	}
+		    }
+		}
+		Integer topValue = null;
+		if( ctx.INT()!= null) {
+			topValue = Integer.valueOf(ctx.INT().getText());
+		}
+		Expr expression = visit(ctx.expr());
+		return new AggregationExpr(aggregator, aggregationKey, aggregationLabels, expression, keepCommon, topValue);
+	}
+	
 }

@@ -159,10 +159,4 @@ public interface AthenaQueryVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitQuoted_string(AthenaQueryParser.Quoted_stringContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link AthenaQueryParser#stringLiteral}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitStringLiteral(AthenaQueryParser.StringLiteralContext ctx);
 }

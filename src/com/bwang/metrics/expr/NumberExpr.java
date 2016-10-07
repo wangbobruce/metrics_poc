@@ -2,9 +2,9 @@ package com.bwang.metrics.expr;
 
 public class NumberExpr extends Expr {
 
-	private String content;
-	public NumberExpr(String content) {
-		this.content = content;
+	private Double number;
+	public NumberExpr(Double number) {
+		this.number = number;
 	}
 	
 	@Override

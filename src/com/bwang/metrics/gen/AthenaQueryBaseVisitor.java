@@ -174,11 +174,4 @@ public class AthenaQueryBaseVisitor<T> extends AbstractParseTreeVisitor<T> imple
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitQuoted_string(AthenaQueryParser.Quoted_stringContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitStringLiteral(AthenaQueryParser.StringLiteralContext ctx) { return visitChildren(ctx); }
 }
