@@ -14,8 +14,8 @@ public class SourceCodeReader {
 	@Test
 	public void testMergeFiles() throws Exception{
 		//String folderName = "C:/work/study/prometheus-1.0.1";
-		String folderName = "C:/work/study/heron-0.14.0/heron";
-		writer = new BufferedWriter(new FileWriter(new File("C:/work/study/heron_all.java")));
+		String folderName = "E:/Study/bigData/prometheus-1.0.1";
+		writer = new BufferedWriter(new FileWriter(new File("E:/Study/bigData/prometheus-1.0.1_all.go")));
 				
 		handleOneFolder(new File(folderName));
 		
@@ -35,8 +35,8 @@ public class SourceCodeReader {
 	}
 	
 	private void handleOneFile(File f) throws Exception{
-//		if(f.getName().endsWith(".go") && !f.getName().contains("_test.go")) {
-		if(f.getName().endsWith(".java") && !f.getName().contains("Test.java")) {
+		if(f.getName().endsWith(".go") && !f.getName().contains("_test.go")) {
+//		if(f.getName().endsWith(".java") && !f.getName().contains("Test.java")) {
 		  BufferedReader reader = new BufferedReader(new FileReader(f));
 		  String s = null;
 		  writer.append("// -- " + f.getPath()).append("\n");

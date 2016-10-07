@@ -7,6 +7,12 @@ public class NumberExpr extends Expr {
 		this.number = number;
 	}
 	
+	
+	public Double getNumber() {
+		return number;
+	}
+
+
 	@Override
 	public ExprType getExprType() {
 		

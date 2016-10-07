@@ -40,6 +40,9 @@ public class QueryEngine {
 		Expr expr = factor.parseExpr(text);
 		
 		Assert.assertTrue(expr instanceof NumberExpr);
+		
+		NumberExpr numExpr = (NumberExpr) expr;
+		Assert.assertEquals(numExpr.getNumber(), (Double)123.0D);
 	}
 	
 	@Test
@@ -60,7 +63,6 @@ public class QueryEngine {
 		
 		AthenaExprFactorary factor = new AthenaExprFactorary();
 		StringExpr expr = (StringExpr) factor.parseExpr(text);
-		
 		
 		Assert.assertEquals(expr.getContent(), "'abc'");
 	}
@@ -219,7 +221,7 @@ public class QueryEngine {
 		System.out.println(fe.getKeepCommon());
 		if(fe.getAggregationLabels()!= null) {
 			for(String l : fe.getAggregationLabels()) {
-				System.out.println("k ： " + l);
+				System.out.println("k 锛� " + l);
 			}
 		}
 	}
