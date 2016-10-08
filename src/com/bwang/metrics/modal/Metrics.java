@@ -2,8 +2,6 @@ package com.bwang.metrics.modal;
 
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
-
 public class Metrics {
 	private final String name;
 	private String owner;
@@ -11,7 +9,7 @@ public class Metrics {
 	
 	
 	public Metrics(String name) {
-		if (StringUtils.isEmpty(name)) {
+		if (name == null || name.trim().length() == 0) {
 			throw new IllegalArgumentException("metrics name can't be empty");
 		}
 		this.name = name;

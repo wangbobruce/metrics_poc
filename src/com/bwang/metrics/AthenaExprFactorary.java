@@ -11,7 +11,6 @@ import com.bwang.metrics.expr.AggregationExpr;
 import com.bwang.metrics.expr.BinaryExpr;
 import com.bwang.metrics.expr.Expr;
 import com.bwang.metrics.expr.FunctionExpr;
-import com.bwang.metrics.expr.LabelMatcher;
 import com.bwang.metrics.expr.MatrixSelectorExpr;
 import com.bwang.metrics.expr.NumberExpr;
 import com.bwang.metrics.expr.Offset;
@@ -24,6 +23,7 @@ import com.bwang.metrics.gen.AthenaQueryBaseVisitor;
 import com.bwang.metrics.gen.AthenaQueryLexer;
 import com.bwang.metrics.gen.AthenaQueryParser;
 import com.bwang.metrics.gen.AthenaQueryParser.ExprContext;
+import com.bwang.metrics.modal.LabelMatcher;
 
 public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 	public Expr parseExpr(String exprString) {
@@ -81,7 +81,7 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 				String operation = labelCtx.match_op.getText();
 				String labelName = labelCtx.IDENTIFIER().getText();
 				String labelValue = (labelCtx.quoted_string()!= null? labelCtx.quoted_string().getText(): labelCtx.numberLiteral().getText());
-				lableMatcherList.add(new LabelMatcher(operation, labelName, labelValue));		
+				lableMatcherList.add(new LabelMatcher(LabelMatcher.Operator.getEnum(operation), labelName, labelValue));		
 			}
 		}
 		
@@ -104,7 +104,7 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 				String operation = labelCtx.match_op.getText();
 				String labelName = labelCtx.IDENTIFIER().getText();
 				String labelValue = (labelCtx.quoted_string()!= null? labelCtx.quoted_string().getText(): labelCtx.numberLiteral().getText());
-				lableMatcherList.add(new LabelMatcher(operation, labelName, labelValue));		
+				lableMatcherList.add(new LabelMatcher(LabelMatcher.Operator.getEnum(operation), labelName, labelValue));		
 			}
 		}
 		

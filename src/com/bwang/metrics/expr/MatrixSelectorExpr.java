@@ -2,6 +2,8 @@ package com.bwang.metrics.expr;
 
 import java.util.List;
 
+import com.bwang.metrics.modal.LabelMatcher;
+
 public class MatrixSelectorExpr extends Expr {
 
     private String identifier;

@@ -12,7 +12,6 @@ import com.bwang.metrics.expr.BinaryExpr;
 import com.bwang.metrics.expr.Expr;
 import com.bwang.metrics.expr.ExprType;
 import com.bwang.metrics.expr.FunctionExpr;
-import com.bwang.metrics.expr.LabelMatcher;
 import com.bwang.metrics.expr.MatrixSelectorExpr;
 import com.bwang.metrics.expr.NumberExpr;
 import com.bwang.metrics.expr.ParentExpr;
@@ -23,6 +22,7 @@ import com.bwang.metrics.gen.AthenaQueryLexer;
 import com.bwang.metrics.gen.AthenaQueryParser;
 import com.bwang.metrics.modal.ExprValue;
 import com.bwang.metrics.modal.ExprValueNumber;
+import com.bwang.metrics.modal.LabelMatcher;
 
 public class QueryEngine {
 	
@@ -63,134 +63,60 @@ public class QueryEngine {
     
 
      private ExprValue eval(Expr expr) {
-
             if (expr instanceof NumberExpr) {
-
                    ExprValueNumber valueObject = new ExprValueNumber();
-
                    valueObject.setValue(((NumberExpr) expr).getNumber());
-
                    return valueObject;
-
             }
 
             if (expr instanceof ParentExpr) {
-
                    ExprValue valueObject = eval( ((ParentExpr)expr).getExpr());
-
                    return valueObject;
-
             }
-
-           
 
             if (expr instanceof BinaryExpr) {
-
                    BinaryExpr binary = (BinaryExpr) expr;
-
-                  
-
                    Expr left = binary.getLeft();
-
                    Expr right = binary.getRight();
-
                    String operator = binary.getOperator();
-
                    if (left.getExprType().equals(ExprType.SCALAR) && right.getExprType().equals(ExprType.SCALAR)) {
-
                          Double leftValue = ((ExprValueNumber) eval(left)).getValue();
-
                          Double rightValue = ((ExprValueNumber) eval(right)).getValue();
 
-                        
-
                          ExprValueNumber valueObject = new ExprValueNumber();
-
                          switch(operator) {
+                         case"-":
+                        	 valueObject.setValue(leftValue - rightValue);
+                        	 break;
+                         case"+":
+                        	 valueObject.setValue(leftValue + rightValue);
+                        	 break;
+                         case"*":
+                        	 valueObject.setValue(leftValue * rightValue);
+                        	 break;
+                         case"/":
+                        	 valueObject.setValue(leftValue / rightValue);
+                        	 break;
+                       	 // comparator <, <=, >, >=    0 or 1
 
-                                case"-":
-
-                                       valueObject.setValue(leftValue - rightValue);
-
-                             break;
-
-                            
-
-                                case"+":
-
-                                       valueObject.setValue(leftValue + rightValue);
-
-                             break;
-
-
-
-                                case"*":
-
-                                       valueObject.setValue(leftValue * rightValue);
-
-                             break;
-
-
-
-                                case"/":
-
-                                       valueObject.setValue(leftValue / rightValue);
-
-                             break;
-
-                            
-
-                                // comparator <, <=, >, >=    0 or 1
-
-                                case "<":
-
-                                       valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
-
-                                break;
-
-
-
-                                case "<=":
-
-                                       valueObject.setValue((leftValue <= rightValue) ? 1D : 0D);
-
-                                break;
-
-
-
-                                case ">":
-
-                                       valueObject.setValue((leftValue > rightValue) ? 1D : 0D);
-
-                                break;
-
-
-
-                                case ">=":
-
-                                       valueObject.setValue((leftValue >= rightValue) ? 1D : 0D);
-
-                                break;
-
+                         case "<":
+                        	 valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
+                        	 break;
+                         case "<=":
+                        	 valueObject.setValue((leftValue <= rightValue) ? 1D : 0D);
+                        	 break;
+                         case ">":
+                        	 valueObject.setValue((leftValue > rightValue) ? 1D : 0D);
+                        	 break;
+                         case ">=":
+                        	 valueObject.setValue((leftValue >= rightValue) ? 1D : 0D);
+                        	 break;
                          }
-
-                        
-
                          return valueObject;
-
                    }
-
             }
-
-           
-
             return null;
-
      }
-
-    
-
-	
 	
 	@Test
 	public void parseString() throws Exception {
@@ -287,8 +213,8 @@ public class QueryEngine {
 	
 	@Test
 	public void parseVectorSelectorExpr() throws Exception {
-		String text = "some_metrics offset 5m";
-//		String text = "some_metrics{col1=='abc',col2=~'inbound.*'}";
+//		String text = "some_metrics offset 5m";
+		String text = "some_metrics{col1=='abc',col2=~'inbound.*'}";
 		System.out.println(parseRequest(text));
 		
 		AthenaExprFactorary factor = new AthenaExprFactorary();
