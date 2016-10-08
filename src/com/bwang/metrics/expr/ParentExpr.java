@@ -13,5 +13,11 @@ public class ParentExpr extends Expr {
 	public ParentExpr(Expr expr) {
 		this.expr = expr;
 	}
+
+	public Expr getExpr() {
+		return expr;
+	}
+	
+	
 	
 }

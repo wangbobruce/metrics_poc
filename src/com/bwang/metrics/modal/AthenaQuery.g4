@@ -16,6 +16,7 @@ expr :
     | left=expr op=K_UNLESS right=expr #binaryExp
     | left=expr op=('*'|'/') right=expr  #binaryExp
     | left=expr op=('-'|'+') right=expr  #binaryExp
+    | left=expr op=('=='|'!='|'<'|'<='|'>'|'>=')  right=expr  #binaryExp
     | aggregator=(K_SUM|K_AVG|K_COUNT|K_MIN|K_MAX|K_STDDEV|K_STDVAR) aggregatorParam? expr  #aggregateExp
     | aggregator=(K_SUM|K_AVG|K_COUNT|K_MIN|K_MAX|K_STDDEV|K_STDVAR) expr aggregatorParam?  #aggregateExp
     | aggregator=( K_TOPK|K_BOTTOMK|K_COUNT_VALUES) '(' INT ','  expr ')'   #aggregateExp
