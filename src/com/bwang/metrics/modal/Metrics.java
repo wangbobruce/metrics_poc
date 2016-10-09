@@ -1,11 +1,11 @@
 package com.bwang.metrics.modal;
 
-import java.util.Set;
+import java.util.Map;
 
 public class Metrics {
 	private final String name;
 	private String owner;
-	private Set<String> labels;
+	private Map<String, String> labels;
 	
 	
 	public Metrics(String name) {
@@ -21,9 +21,23 @@ public class Metrics {
 			return false;
 		}
 		Metrics right = (Metrics) o;
-		
+
 		return name.equals(right.name);
-		
 	}
-	
+
+	public Map<String, String> getLabels() {
+		return labels;
+	}
+
+	public void setLabels(Map<String, String> labels) {
+		this.labels = labels;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getOwner() {
+		return owner;
+	}
 }

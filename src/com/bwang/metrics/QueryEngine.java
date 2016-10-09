@@ -35,15 +35,11 @@ public class QueryEngine {
 	 @Test
 
      public void evaluateValue() throws Exception {
-
-            String text = "250 == 300 - 50.00000000000000000000001 ";
-
+            String text = "250 == 300 - 50.000001 ";
             System.out.println(parseRequest(text));
 
             AthenaExprFactorary factor = new AthenaExprFactorary();
-
             Expr expr = factor.parseExpr(text);
-
             ExprValue value = eval(expr);
 
             if (value != null && value instanceof ExprValueNumber) {
