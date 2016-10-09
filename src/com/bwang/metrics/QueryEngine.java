@@ -61,7 +61,6 @@ public class QueryEngine {
                    System.out.println( ((ExprValueNumber) value).getValue() );
             }
      }
-	 
 	 @Test
      public void evaluateVectorSelectorValue() throws Exception {
             String text = "(cpu_usage{test_label_name!='label_value_7'} OFFSET 1H ) * 5 > 20";
@@ -125,9 +124,15 @@ public class QueryEngine {
 		 }
 		 
 		 VectorSelectorExprValue value = new VectorSelectorExprValue(); 
-				 
 		 List<MetricsRangeData>	rangeDataList = storageService.queryMetricsData(metricsName, "", labelMatcherList, fromDate, toDate);
-		 List<MetricsInstantData> instantDataList = new ArrayList<MetricsInstantData>();
+		 List<MetricsInstantData> instantDataList = pickInstantData(rangeDataList);
+				
+		 value.setInstantData(instantDataList);
+		 return value;
+	 }
+
+	private List<MetricsInstantData> pickInstantData(List<MetricsRangeData> rangeDataList) {
+		List<MetricsInstantData> instantDataList = new ArrayList<MetricsInstantData>();
 		
 		 for(MetricsRangeData d : rangeDataList) {
 			 if (d.getTimeData() == null || d.getTimeData().isEmpty()) {
@@ -138,11 +143,43 @@ public class QueryEngine {
 			 instantData.setTimeData(d.getTimeData().get(d.getTimeData().size() - 1));
 			 instantDataList.add(instantData);
 		 }
-				
-		 value.setInstantData(instantDataList);
-		 return value;
-	 }
+		return instantDataList;
+	}
 
+	 String text = " sum by (foo) keep_common (some_metric{xyz==\"abc\",abc=~\"inbound.*\"} offset 3m )";
+	 @Test
+    public void evaluateGroup() throws Exception {
+           String text = "sum by (test_label_name) keep_common ((cpu_usage{test_label_name!='label_value_7'} OFFSET 1H ) * 5 > 20 )";
+           System.out.println(parseRequest(text));
+
+           AthenaExprFactorary factor = new AthenaExprFactorary();
+           Expr expr = factor.parseExpr(text);
+           ExprValue value = eval(expr);
+
+           if (value != null && value instanceof VectorSelectorExprValue) {
+           	print( ((VectorSelectorExprValue) value).getInstantData());
+           }
+    }
+	
+	private ExprValue evalAggregation(AggregationExpr aggregationExpr, List<MetricsInstantData> instantDataList) {
+		String aggregator = aggregationExpr.getAggregator();
+		String aggregatorKey = aggregationExpr.getAggregationKey();
+
+		List<String> columns = aggregationExpr.getAggregationLabels();
+		Integer topValue = aggregationExpr.getTopValue();
+
+		VectorSelectorExprValue vectorSelectEpxrValue = new VectorSelectorExprValue(); 
+		List<MetricsInstantData>	returnDataList = new ArrayList<MetricsInstantData>();
+		vectorSelectEpxrValue.setInstantData(returnDataList);
+
+		if ((aggregator.toLowerCase().equals("topk") || aggregator.toLowerCase().equals("bottomk")) && topValue < 1) {
+			return vectorSelectEpxrValue;
+		}
+
+		return null;
+		
+	}
+	
      private ExprValue eval(Expr expr) {
             if (expr instanceof NumberExpr) {
                    ExprValueNumber valueObject = new ExprValueNumber();
@@ -160,6 +197,17 @@ public class QueryEngine {
             	return evalVectorSelector(vectorSelectorExpr);
             }
             
+            if (expr instanceof AggregationExpr) {
+            	AggregationExpr aggregationExpr = (AggregationExpr)expr;
+            	ExprValue valueObject = eval ( aggregationExpr.getExpression());
+            	if (valueObject instanceof VectorSelectorExprValue) {
+            		 List<MetricsInstantData>	instantDataList = ((VectorSelectorExprValue) valueObject).getInstantData();
+            		 return evalAggregation(aggregationExpr, instantDataList);
+            	} else {
+            		throw new RuntimeException("not supported");
+            	}
+            }
+            
 
             if (expr instanceof BinaryExpr) {
                    BinaryExpr binary = (BinaryExpr) expr;
@@ -170,42 +218,7 @@ public class QueryEngine {
                          Double leftValue = ((ExprValueNumber) eval(left)).getValue();
                          Double rightValue = ((ExprValueNumber) eval(right)).getValue();
 
-                         ExprValueNumber valueObject = new ExprValueNumber();
-                         switch(operator) {
-                         case"-":
-                        	 valueObject.setValue(leftValue - rightValue);
-                        	 break;
-                         case"+":
-                        	 valueObject.setValue(leftValue + rightValue);
-                        	 break;
-                         case"*":
-                        	 valueObject.setValue(leftValue * rightValue);
-                        	 break;
-                         case"/":
-                        	 valueObject.setValue(leftValue / rightValue);
-                        	 break;
-                       	 // comparator <, <=, >, >=    0 or 1
-
-                         case "==":
-                        	 valueObject.setValue((leftValue.equals(rightValue)) ? 1D : 0D);
-                        	 break;
-                         case "!=":
-                        	 valueObject.setValue((!leftValue.equals(rightValue)) ? 1D : 0D);
-                        	 break;
-                         case "<":
-                        	 valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
-                        	 break;
-                         case "<=":
-                        	 valueObject.setValue((leftValue <= rightValue) ? 1D : 0D);
-                        	 break;
-                         case ">":
-                        	 valueObject.setValue((leftValue > rightValue) ? 1D : 0D);
-                        	 break;
-                         case ">=":
-                        	 valueObject.setValue((leftValue >= rightValue) ? 1D : 0D);
-                        	 break;
-                         }
-                         return valueObject;
+                         return evalScalarValue(operator, leftValue, rightValue);
                    }
                    
                    else if (left.getExprType().equals(ExprType.VECTOR) && right.getExprType().equals(ExprType.SCALAR) ||
@@ -279,32 +292,13 @@ public class QueryEngine {
 		                        		 skip = true;
 		                        	 }
 		                        	 break;
-		 
-	//	                         case "==":
-	//	                        	 valueObject.setValue((leftValue.equals(rightValue)) ? 1D : 0D);
-	//	                        	 break;
-	//	                         case "!=":
-	//	                        	 valueObject.setValue((!leftValue.equals(rightValue)) ? 1D : 0D);
-	//	                        	 break;
-	//	                         case "<":
-	//	                        	 valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
-	//	                        	 break;
-	//	                         case "<=":
-	//	                        	 valueObject.setValue((leftValue <= rightValue) ? 1D : 0D);
-	//	                        	 break;
-	//	                         case ">":
-	//	                        	 valueObject.setValue((leftValue > rightValue) ? 1D : 0D);
-	//	                        	 break;
-	//	                         case ">=":
-	//	                        	 valueObject.setValue((leftValue >= rightValue) ? 1D : 0D);
-	//	                        	 break;
 	                         }
 	            			 if (skip) {
 	            				 continue;
 	            			 }
 
-	            			 TimeData newTimeDate = new TimeData(oldTimeData.getTimestamp(), newValue);
-	            			 instantData.setTimeData(newTimeDate);
+	            			 TimeData newTimeData = new TimeData(oldTimeData.getTimestamp(), newValue);
+	            			 instantData.setTimeData(newTimeData);
 	            			 returnDataList.add(instantData);
 	            		 }
               		  return vectorSelectEpxrValue;
@@ -313,6 +307,45 @@ public class QueryEngine {
             }
             return null;
      }
+
+	private ExprValue evalScalarValue(String operator, Double leftValue, Double rightValue) {
+		ExprValueNumber valueObject = new ExprValueNumber();
+		 switch(operator) {
+		 case"-":
+			 valueObject.setValue(leftValue - rightValue);
+			 break;
+		 case"+":
+			 valueObject.setValue(leftValue + rightValue);
+			 break;
+		 case"*":
+			 valueObject.setValue(leftValue * rightValue);
+			 break;
+		 case"/":
+			 valueObject.setValue(leftValue / rightValue);
+			 break;
+		 // comparator <, <=, >, >=    0 or 1
+
+		 case "==":
+			 valueObject.setValue((leftValue.equals(rightValue)) ? 1D : 0D);
+			 break;
+		 case "!=":
+			 valueObject.setValue((!leftValue.equals(rightValue)) ? 1D : 0D);
+			 break;
+		 case "<":
+			 valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
+			 break;
+		 case "<=":
+			 valueObject.setValue((leftValue <= rightValue) ? 1D : 0D);
+			 break;
+		 case ">":
+			 valueObject.setValue((leftValue > rightValue) ? 1D : 0D);
+			 break;
+		 case ">=":
+			 valueObject.setValue((leftValue >= rightValue) ? 1D : 0D);
+			 break;
+		 }
+		 return valueObject;
+	}
 	
 	@Test
 	public void parseString() throws Exception {
@@ -505,7 +538,7 @@ public class QueryEngine {
 		System.out.println(fe.getKeepCommon());
 		if(fe.getAggregationLabels()!= null) {
 			for(String l : fe.getAggregationLabels()) {
-				System.out.println("k 锛� " + l);
+				System.out.println("k Label " + l);
 			}
 		}
 	}
