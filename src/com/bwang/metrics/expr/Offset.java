@@ -1,12 +1,12 @@
 package com.bwang.metrics.expr;
 
 public class Offset {
-	private Double value;
+	private Integer value;
 	private String unit;
-	public Double getValue() {
+	public Integer getValue() {
 		return value;
 	}
-	public void setValue(Double value) {
+	public void setValue(Integer value) {
 		this.value = value;
 	}
 	public String getUnit() {
@@ -16,7 +16,7 @@ public class Offset {
 		this.unit = unit;
 	}
 	
-	public Offset(Double value, String unit) {
+	public Offset(Integer value, String unit) {
 		this.value = value;
 		this.unit = unit;
 	}

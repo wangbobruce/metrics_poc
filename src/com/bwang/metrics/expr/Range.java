@@ -4,7 +4,7 @@ public class Range {
 	private String begin;
 	private String end;
 	
-	private Double value;
+	private Integer value;
 	private String unit;
 	public String getBegin() {
 		return begin;
@@ -18,10 +18,10 @@ public class Range {
 	public void setEnd(String end) {
 		this.end = end;
 	}
-	public Double getValue() {
+	public Integer getValue() {
 		return value;
 	}
-	public void setValue(Double value) {
+	public void setValue(Integer value) {
 		this.value = value;
 	}
 	public String getUnit() {

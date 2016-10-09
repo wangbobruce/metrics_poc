@@ -4,5 +4,18 @@ import java.util.Date;
 
 public class TimeData {
 	private Date timestamp;
-	private Number value;
+	private Double value;
+	
+	public TimeData(Date timestamp, Double value) {
+		this.timestamp = timestamp;
+		this.value = value;
+	}
+
+	public Date getTimestamp() {
+		return timestamp;
+	}
+
+	public Double getValue() {
+		return value;
+	}
 }

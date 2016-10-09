@@ -73,11 +73,11 @@ labelMatcher :
     ;
 
 offsetExpr : 
-     K_OFFSET  numberLiteral TIME_UNIT          
+     K_OFFSET  INT TIME_UNIT          
      ;
 
 rangeExpr  :  
-     '[' numberLiteral TIME_UNIT ']'
+     '[' INT TIME_UNIT ']'
     | K_BETWEEN  from_time K_AND to_time
     ;         
 
