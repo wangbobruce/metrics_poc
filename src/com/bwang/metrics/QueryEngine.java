@@ -36,30 +36,20 @@ public class QueryEngine {
 
      public void evaluateValue() throws Exception {
 
-            String text = "250 > 300 - 100 ";
+            String text = "250 == 300 - 50.00000000000000000000001 ";
 
             System.out.println(parseRequest(text));
-
-           
 
             AthenaExprFactorary factor = new AthenaExprFactorary();
 
             Expr expr = factor.parseExpr(text);
 
-           
-
             ExprValue value = eval(expr);
 
             if (value != null && value instanceof ExprValueNumber) {
-
                    System.out.println( ((ExprValueNumber) value).getValue() );
-
             }
-
      }
-
-    
-
     
 
      private ExprValue eval(Expr expr) {
@@ -99,6 +89,12 @@ public class QueryEngine {
                         	 break;
                        	 // comparator <, <=, >, >=    0 or 1
 
+                         case "==":
+                        	 valueObject.setValue((leftValue.equals(rightValue)) ? 1D : 0D);
+                        	 break;
+                         case "!=":
+                        	 valueObject.setValue((!leftValue.equals(rightValue)) ? 1D : 0D);
+                        	 break;
                          case "<":
                         	 valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
                         	 break;
@@ -224,7 +220,7 @@ public class QueryEngine {
 		
 		VectorSelectorExpr ve = (VectorSelectorExpr) expr;
 		
-		System.out.println(ve.getIdentifier());
+		System.out.println(ve.getMetricsName());
 		for(LabelMatcher m :ve.getLabelMatcherList()) {
 			System.out.println(m.getOperator());
 			System.out.println(m.getLabelName());

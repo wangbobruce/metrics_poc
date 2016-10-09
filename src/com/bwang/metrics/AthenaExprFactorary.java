@@ -45,7 +45,7 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 		if (ctx.numberLiteral().INT()!= null) {
 			content = ctx.numberLiteral().INT().getText();
 		} else {
-			ctx.numberLiteral().DOUBLE().getText();
+			content = ctx.numberLiteral().DOUBLE().getText();
 		}
 		Double value = Double.valueOf(content);
 		return new NumberExpr(value); 

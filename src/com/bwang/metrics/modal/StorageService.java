@@ -4,5 +4,5 @@ import java.util.Date;
 import java.util.List;
 
 public interface StorageService {
-	MetricsData queryMetricsData(Date begin, Date end, String metricsName, String owner, List<LabelMatcher> labelMatcherList);
+	List<MetricsData> queryMetricsData(String metricsName, String owner, List<LabelMatcher> labelMatcherList, Date begin, Date end);
 }
