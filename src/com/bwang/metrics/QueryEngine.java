@@ -1,8 +1,16 @@
 package com.bwang.metrics;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map.Entry;
+
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +22,7 @@ import com.bwang.metrics.expr.ExprType;
 import com.bwang.metrics.expr.FunctionExpr;
 import com.bwang.metrics.expr.MatrixSelectorExpr;
 import com.bwang.metrics.expr.NumberExpr;
+import com.bwang.metrics.expr.Offset;
 import com.bwang.metrics.expr.ParentExpr;
 import com.bwang.metrics.expr.StringExpr;
 import com.bwang.metrics.expr.UnaryExpr;
@@ -23,9 +32,16 @@ import com.bwang.metrics.gen.AthenaQueryParser;
 import com.bwang.metrics.modal.ExprValue;
 import com.bwang.metrics.modal.ExprValueNumber;
 import com.bwang.metrics.modal.LabelMatcher;
+import com.bwang.metrics.modal.Metrics;
+import com.bwang.metrics.modal.MetricsInstantData;
+import com.bwang.metrics.modal.MetricsRangeData;
+import com.bwang.metrics.modal.StorageService;
+import com.bwang.metrics.modal.TimeData;
+import com.bwang.metrics.modal.VectorSelectorExprValue;
 
 public class QueryEngine {
 	
+	private StorageService storageService = new LocalStorageService();
 	
 	@Before
 	public void setup() {
@@ -33,34 +49,99 @@ public class QueryEngine {
 	}
 	
 	 @Test
-
      public void evaluateValue() throws Exception {
-
-            String text = "250 > 300 - 100 ";
-
+            String text = "250 == 300 - 50.000001 ";
             System.out.println(parseRequest(text));
 
-           
-
             AthenaExprFactorary factor = new AthenaExprFactorary();
-
             Expr expr = factor.parseExpr(text);
-
-           
-
             ExprValue value = eval(expr);
 
             if (value != null && value instanceof ExprValueNumber) {
-
                    System.out.println( ((ExprValueNumber) value).getValue() );
-
             }
-
      }
+	 
+	 @Test
+     public void evaluateVectorSelectorValue() throws Exception {
+            String text = "(cpu_usage{test_label_name!='label_value_7'} OFFSET 1H ) * 5 > 20";
+            System.out.println(parseRequest(text));
 
-    
+            AthenaExprFactorary factor = new AthenaExprFactorary();
+            Expr expr = factor.parseExpr(text);
+            ExprValue value = eval(expr);
 
+            if (value != null && value instanceof VectorSelectorExprValue) {
+            	print( ((VectorSelectorExprValue) value).getInstantData());
+            }
+     }
+	 
+	 private void print(List<MetricsInstantData> instantDataList) {
+		 for(MetricsInstantData d : instantDataList) {
+			 Metrics m = d.getMetrics();
+			 
+			 Date timestamp = d.getTimeData().getTimestamp();
+			 Double value = d.getTimeData().getValue();
+			 SimpleDateFormat dateFormat = new SimpleDateFormat(
+	                    "yyyy-MM-dd'T'hh:mm:ss");
+			 System.out.println(String.format("%s %s value %f", formatMetrics(m), dateFormat.format(timestamp), value));
+		 }
+	 }
+	 
+	 private String formatMetrics(Metrics m) {
+		 StringBuilder sb = new StringBuilder();
+		 sb.append(m.getName()).append("{");
+		 int i=0; 
+		 for(Entry<String, String> e : m.getLabels().entrySet()) {
+			 if (i != 0) {
+				sb.append(",");
+			 }
+			 sb.append(e.getKey()).append("=").append(e.getValue());
+			 i++;
+		 }
+		 sb.append("}");
+		 return sb.toString();
+	 }
     
+	 private VectorSelectorExprValue evalVectorSelector(VectorSelectorExpr vectorSelectorExpr) {
+		 String metricsName = vectorSelectorExpr.getMetricsName();
+		 Offset offset = vectorSelectorExpr.getOffset();
+		 List<LabelMatcher> labelMatcherList = vectorSelectorExpr.getLabelMatcherList();
+		 Date toDate = new Date();
+		 Date fromDate = toDate;
+		 if (offset != null) {
+			 String timeUnit = offset.getUnit();
+			 Integer offsetValue = offset.getValue();
+				if (StringUtils.equalsIgnoreCase(timeUnit, "d")) {
+					fromDate = DateUtils.addDays(toDate, -offsetValue);
+				} else if (StringUtils.equalsIgnoreCase(timeUnit, "h")) {
+					fromDate = DateUtils.addHours(toDate, -offsetValue);
+				} else if (StringUtils.equalsIgnoreCase(timeUnit, "m")) {
+					fromDate = DateUtils.addMinutes(toDate, -offsetValue);
+				} else {
+					fromDate = DateUtils.addSeconds(toDate, -offsetValue);
+				}
+			 toDate = fromDate; //  vector selector only for instant metrics
+		 }
+		 
+		 VectorSelectorExprValue value = new VectorSelectorExprValue(); 
+				 
+		 List<MetricsRangeData>	rangeDataList = storageService.queryMetricsData(metricsName, "", labelMatcherList, fromDate, toDate);
+		 List<MetricsInstantData> instantDataList = new ArrayList<MetricsInstantData>();
+		
+		 for(MetricsRangeData d : rangeDataList) {
+			 if (d.getTimeData() == null || d.getTimeData().isEmpty()) {
+				 continue;
+			 }
+			 MetricsInstantData instantData = new MetricsInstantData();
+			 instantData.setMetrics(d.getMetrics());
+			 instantData.setTimeData(d.getTimeData().get(d.getTimeData().size() - 1));
+			 instantDataList.add(instantData);
+		 }
+				
+		 value.setInstantData(instantDataList);
+		 return value;
+	 }
 
      private ExprValue eval(Expr expr) {
             if (expr instanceof NumberExpr) {
@@ -73,6 +154,12 @@ public class QueryEngine {
                    ExprValue valueObject = eval( ((ParentExpr)expr).getExpr());
                    return valueObject;
             }
+            
+            if (expr instanceof VectorSelectorExpr) {
+            	VectorSelectorExpr vectorSelectorExpr = (VectorSelectorExpr) expr;
+            	return evalVectorSelector(vectorSelectorExpr);
+            }
+            
 
             if (expr instanceof BinaryExpr) {
                    BinaryExpr binary = (BinaryExpr) expr;
@@ -99,6 +186,12 @@ public class QueryEngine {
                         	 break;
                        	 // comparator <, <=, >, >=    0 or 1
 
+                         case "==":
+                        	 valueObject.setValue((leftValue.equals(rightValue)) ? 1D : 0D);
+                        	 break;
+                         case "!=":
+                        	 valueObject.setValue((!leftValue.equals(rightValue)) ? 1D : 0D);
+                        	 break;
                          case "<":
                         	 valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
                         	 break;
@@ -114,6 +207,109 @@ public class QueryEngine {
                          }
                          return valueObject;
                    }
+                   
+                   else if (left.getExprType().equals(ExprType.VECTOR) && right.getExprType().equals(ExprType.SCALAR) ||
+                		    left.getExprType().equals(ExprType.SCALAR) && right.getExprType().equals(ExprType.VECTOR)) {
+                	   
+	                	 VectorSelectorExprValue vectorSelectEpxrValue = new VectorSelectorExprValue(); 
+	                	 List<MetricsInstantData>	returnDataList = new ArrayList<MetricsInstantData>();
+	                	 vectorSelectEpxrValue.setInstantData(returnDataList);
+	                	 
+	              		 List<MetricsInstantData>	subDataList = left.getExprType().equals(ExprType.VECTOR) ? ((VectorSelectorExprValue) eval(left)).getInstantData() : ((VectorSelectorExprValue) eval(right)).getInstantData();
+	              		 Double scalarValue = left.getExprType().equals(ExprType.VECTOR) ? ((ExprValueNumber) eval(right)).getValue() : ((ExprValueNumber) eval(left)).getValue();
+	              		 boolean revert = left.getExprType().equals(ExprType.SCALAR);
+	              		 
+	              		 // List<MetricsInstantData> instantDataList
+	            		 for(MetricsInstantData d : subDataList) {
+	            			 MetricsInstantData instantData = new MetricsInstantData();
+	            			 instantData.setMetrics(d.getMetrics());
+	            			 TimeData oldTimeData = d.getTimeData();
+	            			 Double leftValue =  oldTimeData.getValue();
+	            			 Double rightValue = scalarValue;
+	            			 Double newValue = leftValue;
+	            			 if (revert) {
+	            				 leftValue = scalarValue;
+	            				 rightValue = oldTimeData.getValue();
+	            				 newValue = rightValue;
+	            			 }
+	            			  
+	            			 boolean skip = false;
+	            			 switch(operator) {
+		                         case"-":
+		                        	 newValue = leftValue - rightValue;
+		                        	 break;
+		                         case"+":
+		                        	 newValue = leftValue + rightValue;
+		                        	 break;
+		                         case"*":
+		                        	 newValue = leftValue * rightValue;
+		                        	 break;
+		                         case"/":
+		                        	 newValue = leftValue / rightValue;
+		                        	 break;
+		                       	 // comparator <, <=, >, >=    0 or 1
+	
+		                         case "==":
+		                        	 if (!leftValue.equals(rightValue)) {
+		                        		 skip = true;
+		                        	 }
+		                        	 break;
+		                         case "!=":
+		                        	 if(leftValue.equals(rightValue)) {
+		                        		 skip = true;
+		                        	 }
+		                        	 break;
+		                         case "<":
+		                        	 if (leftValue >= rightValue) {
+		                        		 skip = true;
+		                        	 }
+		                        	 break;
+		                         case "<=":
+		                        	 if (leftValue > rightValue) {
+		                        		 skip = true;
+		                        	 }
+		                        	 break;
+		                         case ">":
+		                        	 if (leftValue <= rightValue) {
+		                        		 skip = true;
+		                        	 }
+		                        	 break;
+		                         case ">=":
+		                        	 if (leftValue < rightValue) {
+		                        		 skip = true;
+		                        	 }
+		                        	 break;
+		 
+	//	                         case "==":
+	//	                        	 valueObject.setValue((leftValue.equals(rightValue)) ? 1D : 0D);
+	//	                        	 break;
+	//	                         case "!=":
+	//	                        	 valueObject.setValue((!leftValue.equals(rightValue)) ? 1D : 0D);
+	//	                        	 break;
+	//	                         case "<":
+	//	                        	 valueObject.setValue((leftValue < rightValue) ? 1D : 0D);
+	//	                        	 break;
+	//	                         case "<=":
+	//	                        	 valueObject.setValue((leftValue <= rightValue) ? 1D : 0D);
+	//	                        	 break;
+	//	                         case ">":
+	//	                        	 valueObject.setValue((leftValue > rightValue) ? 1D : 0D);
+	//	                        	 break;
+	//	                         case ">=":
+	//	                        	 valueObject.setValue((leftValue >= rightValue) ? 1D : 0D);
+	//	                        	 break;
+	                         }
+	            			 if (skip) {
+	            				 continue;
+	            			 }
+
+	            			 TimeData newTimeDate = new TimeData(oldTimeData.getTimestamp(), newValue);
+	            			 instantData.setTimeData(newTimeDate);
+	            			 returnDataList.add(instantData);
+	            		 }
+              		  return vectorSelectEpxrValue;
+                   }
+                   
             }
             return null;
      }
@@ -152,7 +348,7 @@ public class QueryEngine {
 		AthenaExprFactorary factor = new AthenaExprFactorary();
 		StringExpr expr = (StringExpr) factor.parseExpr(text);
 		
-		Assert.assertEquals(expr.getContent(), "'abc'");
+		Assert.assertEquals(expr.getContent(), "abc");
 	}
 	
 	
@@ -224,7 +420,7 @@ public class QueryEngine {
 		
 		VectorSelectorExpr ve = (VectorSelectorExpr) expr;
 		
-		System.out.println(ve.getIdentifier());
+		System.out.println(ve.getMetricsName());
 		for(LabelMatcher m :ve.getLabelMatcherList()) {
 			System.out.println(m.getOperator());
 			System.out.println(m.getLabelName());

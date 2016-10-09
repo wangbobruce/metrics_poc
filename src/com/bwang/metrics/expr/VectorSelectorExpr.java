@@ -6,12 +6,12 @@ import com.bwang.metrics.modal.LabelMatcher;
 
 public class VectorSelectorExpr extends Expr {
 
-    private String identifier;
+    private String metricsName;
     private List<LabelMatcher> labelMatcherList;
 	private Offset offset;
 	
 	public VectorSelectorExpr(String identifier, List<LabelMatcher> labelMatcherList, Offset offset) {
-		this.identifier = identifier;
+		this.metricsName = identifier;
 		this.labelMatcherList = labelMatcherList;
 		this.offset = offset;
 	}
@@ -21,8 +21,8 @@ public class VectorSelectorExpr extends Expr {
 		return ExprType.VECTOR;
 	}
 
-	public String getIdentifier() {
-		return identifier;
+	public String getMetricsName() {
+		return metricsName;
 	}
 
 	public List<LabelMatcher> getLabelMatcherList() {

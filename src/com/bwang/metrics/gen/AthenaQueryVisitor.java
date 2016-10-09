@@ -1,4 +1,4 @@
-// Generated from E:\Study\github\metrics_poc\src\com\bwang\metrics\modal\AthenaQuery.g4 by ANTLR 4.5.1
+// Generated from C:\Users\e540766\01_Code\metrics_poc\src\com\bwang\metrics\modal\AthenaQuery.g4 by ANTLR 4.5.1
 
 package com.bwang.metrics.gen;
 
@@ -12,6 +12,20 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  * operations with no return type.
  */
 public interface AthenaQueryVisitor<T> extends ParseTreeVisitor<T> {
+	/**
+	 * Visit a parse tree produced by the {@code parentEpr}
+	 * labeled alternative in {@link AthenaQueryParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParentEpr(AthenaQueryParser.ParentEprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code functionExpr}
+	 * labeled alternative in {@link AthenaQueryParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionExpr(AthenaQueryParser.FunctionExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code stringExpr}
 	 * labeled alternative in {@link AthenaQueryParser#expr}.
@@ -34,13 +48,6 @@ public interface AthenaQueryVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitBinaryExp(AthenaQueryParser.BinaryExpContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code vectorSelectorExpr}
-	 * labeled alternative in {@link AthenaQueryParser#expr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitVectorSelectorExpr(AthenaQueryParser.VectorSelectorExprContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code aggregateExp}
 	 * labeled alternative in {@link AthenaQueryParser#expr}.
 	 * @param ctx the parse tree
@@ -55,26 +62,19 @@ public interface AthenaQueryVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitMatrixSelectorExpr(AthenaQueryParser.MatrixSelectorExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code vectorSelectorExpr}
+	 * labeled alternative in {@link AthenaQueryParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitVectorSelectorExpr(AthenaQueryParser.VectorSelectorExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code numberExpr}
 	 * labeled alternative in {@link AthenaQueryParser#expr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitNumberExpr(AthenaQueryParser.NumberExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code parentEpr}
-	 * labeled alternative in {@link AthenaQueryParser#expr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitParentEpr(AthenaQueryParser.ParentEprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code functionExpr}
-	 * labeled alternative in {@link AthenaQueryParser#expr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitFunctionExpr(AthenaQueryParser.FunctionExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AthenaQueryParser#call}.
 	 * @param ctx the parse tree

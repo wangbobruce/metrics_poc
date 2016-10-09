@@ -45,16 +45,14 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 		if (ctx.numberLiteral().INT()!= null) {
 			content = ctx.numberLiteral().INT().getText();
 		} else {
-			ctx.numberLiteral().DOUBLE().getText();
+			content = ctx.numberLiteral().DOUBLE().getText();
 		}
 		Double value = Double.valueOf(content);
 		return new NumberExpr(value); 
 	}
 	
 	@Override public Expr visitQuoted_string(AthenaQueryParser.Quoted_stringContext ctx) { 
-		String content = ctx.getText();
-		
-		return new StringExpr(content);
+		return new StringExpr(getQuotedStringContent(ctx));
 	}
 	
 	@Override public Expr visitBinaryExp(AthenaQueryParser.BinaryExpContext ctx) { 
@@ -65,6 +63,21 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 		return new BinaryExpr(op, left, right);
 	}
 	
+	private String getQuotedStringContent(AthenaQueryParser.Quoted_stringContext ctx) {
+		if (ctx == null || ctx.getText() == null) {
+			return null;
+		}
+		String content = ctx.getText();
+		int start = 0;
+		int end = content.length();
+		if (content.startsWith("'") || content.startsWith("\"")) {
+			start = 1;
+		}
+		if (content.endsWith("'") || content.endsWith("\"")) {
+			end-=1;
+		}
+		return content.substring(start, end);
+	}
 	
 	@Override public Expr visitParentEpr(AthenaQueryParser.ParentEprContext ctx) { 
 
@@ -80,16 +93,16 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 			for(AthenaQueryParser.LabelMatcherContext labelCtx : ctx.labelMatcherList().labelMatcher()) {
 				String operation = labelCtx.match_op.getText();
 				String labelName = labelCtx.IDENTIFIER().getText();
-				String labelValue = (labelCtx.quoted_string()!= null? labelCtx.quoted_string().getText(): labelCtx.numberLiteral().getText());
+				String labelValue = (labelCtx.quoted_string()!= null? getQuotedStringContent(labelCtx.quoted_string()): labelCtx.numberLiteral().getText());
 				lableMatcherList.add(new LabelMatcher(LabelMatcher.Operator.getEnum(operation), labelName, labelValue));		
 			}
 		}
 		
 		Offset offset = null;
 		if (ctx.offsetExpr()!= null) {
-			String offsetValue = ctx.offsetExpr().numberLiteral().getText();
+			String offsetValue = ctx.offsetExpr().INT().getText();
 			String offsetUnit = ctx.offsetExpr().TIME_UNIT().getText();
-			offset = new Offset(Double.valueOf(offsetValue), offsetUnit);
+			offset = new Offset(Integer.valueOf(offsetValue), offsetUnit);
 		}
 		
 		return new VectorSelectorExpr(identifierName, lableMatcherList, offset );
@@ -103,7 +116,7 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 			for(AthenaQueryParser.LabelMatcherContext labelCtx : ctx.labelMatcherList().labelMatcher()) {
 				String operation = labelCtx.match_op.getText();
 				String labelName = labelCtx.IDENTIFIER().getText();
-				String labelValue = (labelCtx.quoted_string()!= null? labelCtx.quoted_string().getText(): labelCtx.numberLiteral().getText());
+				String labelValue = (labelCtx.quoted_string()!= null? getQuotedStringContent(labelCtx.quoted_string()): labelCtx.numberLiteral().getText());
 				lableMatcherList.add(new LabelMatcher(LabelMatcher.Operator.getEnum(operation), labelName, labelValue));		
 			}
 		}
@@ -113,7 +126,7 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 			String begin = (ctx.rangeExpr().from_time()!= null ? ctx.rangeExpr().from_time().getText(): null);
 			String end = (ctx.rangeExpr().to_time()!= null ? ctx.rangeExpr().to_time().getText(): null);
 			
-			Double value = (ctx.rangeExpr().numberLiteral() != null ? Double.valueOf(ctx.rangeExpr().numberLiteral().getText()): null);
+			Integer value = (ctx.rangeExpr().INT() != null ? Integer.valueOf(ctx.rangeExpr().INT().getText()): null);
 			String unit = (ctx.rangeExpr().TIME_UNIT() != null ? ctx.rangeExpr().TIME_UNIT().getText(): null);
 			
 			range = new Range();
@@ -125,9 +138,9 @@ public class AthenaExprFactorary extends AthenaQueryBaseVisitor <Expr> {
 		
 		Offset offset = null;
 		if (ctx.offsetExpr()!= null) {
-			String offsetValue = ctx.offsetExpr().numberLiteral().getText();
+			String offsetValue = ctx.offsetExpr().INT().getText();
 			String offsetUnit = ctx.offsetExpr().TIME_UNIT().getText();
-			offset = new Offset(Double.valueOf(offsetValue), offsetUnit);
+			offset = new Offset(Integer.valueOf(offsetValue), offsetUnit);
 		}
 		
 		return new MatrixSelectorExpr(identifierName, lableMatcherList, range, offset );

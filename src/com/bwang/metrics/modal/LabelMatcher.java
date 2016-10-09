@@ -31,9 +31,9 @@ public class LabelMatcher {
 	
 	public enum Operator {
 		EQUAL("=="),    
-		NOTEQUAL("!="),
-		EQREG("=~"),
-		NOTREG("!~");
+		NOT_EQUAL("!="),
+		REGEX_MATCH("=~"),
+		REGEX_NOT_MATCH("!~");
 
 		private String op;
 		Operator(String v){
